@@ -1,0 +1,39 @@
+# macOS/Linux compose — runs the pre-compiled Windows .exe via Wine
+# inside a Linux container, tested against SQL Server.
+#
+# USAGE:
+#   docker compose up --build --abort-on-container-exit
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/azure-sql-edge
+    environment:
+      ACCEPT_EULA: "1"
+      MSSQL_SA_PASSWORD: "YourStrongPassword123!"
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c '</dev/tcp/localhost/1433'",
+        ]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+      start_period: 5s
+
+  ms-sql-query:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      SQL_HOST: sqlserver
+      SQL_PORT: "1433"
+      SQL_USER: sa
+      SQL_PASSWORD: "YourStrongPassword123!"
+      SQL_DATABASE: master
+    depends_on:
+      sqlserver:
+        condition: service_healthy
